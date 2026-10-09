@@ -1,0 +1,32 @@
+# One block per domain. Caddy fetches and renews the HTTPS certificate for each automatically.
+# After editing:  docker compose -f /opt/proxy/docker-compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile
+
+{
+	email {$ACME_EMAIL}
+}
+
+# Finance MCP (this project). "finance-mcp" is the container name on the proxy network.
+finance.joaokishimoto.dev {
+	encode zstd gzip
+	reverse_proxy finance-mcp:8000
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}
+
+# Your other MCP (example — uncomment and adjust the container name/port):
+# othermcp.joaokishimoto.dev {
+# 	reverse_proxy other-mcp:8000
+# }
+
+# Your website + API later (example):
+# joaokishimoto.dev, www.joaokishimoto.dev {
+# 	handle /api/* {
+# 		reverse_proxy website-api:3000
+# 	}
+# 	handle {
+# 		reverse_proxy website:80
+# 	}
+# }

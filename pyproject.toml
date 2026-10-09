@@ -1,0 +1,29 @@
+[project]
+name = "finance-mcp"
+version = "0.1.0"
+description = "Read-only MCP server that gives Claude your Pluggy (Open Finance) data plus budgeting tools."
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=4.0,<5",
+    "httpx>=0.28",
+    "pydantic>=2.10",
+    "pyyaml>=6.0",
+    "tzdata",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+finance-mcp = "finance_mcp.server:main"
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

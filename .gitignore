@@ -1,0 +1,26 @@
+# Secrets: never commit
+.env
+.env.*
+!.env.example
+proxy/.env
+
+# Local data (config.yaml, backups, OAuth state)
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+
+# Keys and certificates (e.g. an Oracle SSH key dropped in this folder)
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*

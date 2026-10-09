@@ -1,0 +1,40 @@
+# ---------------------------------------------------------------------------
+# Shared reverse proxy for EVERYTHING on the VPS (this MCP, your other MCP,
+# your website). Copy this folder to /opt/proxy on the VPS.
+#
+# Caddy is the only container with published ports (80/443). It gets HTTPS
+# certificates from Let's Encrypt automatically and forwards each domain to
+# the right container over the `proxy` Docker network.
+# ---------------------------------------------------------------------------
+
+services:
+  caddy:
+    image: caddy:2-alpine         # official image, has ARM builds
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"                   # "VPS port:container port". 80 is needed for certificate challenges + redirect
+      - "443:443"                 # HTTPS
+      - "443:443/udp"             # HTTP/3
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}   # read from proxy/.env; Let's Encrypt sends expiry warnings here
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro   # bind mount: a file from the VPS, read-only
+      - caddy-data:/data                      # certificates (keep them, or you'll hit Let's Encrypt rate limits)
+      - caddy-config:/config
+    networks:
+      - proxy
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  caddy-data:
+  caddy-config:
+
+networks:
+  proxy:
+    name: proxy                   # fixed name so other stacks can join it as "external"

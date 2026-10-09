@@ -1,0 +1,21 @@
+# Files Docker should NOT copy into the image (secrets, junk, things the server doesn't need).
+.env
+.env.*
+!.env.example
+.git
+.venv
+venv
+data
+**/__pycache__
+**/*.egg-info
+.pytest_cache
+tests
+docs
+scripts
+proxy
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*

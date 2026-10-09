@@ -1,0 +1,41 @@
+# ---------------------------------------------------------------------------
+# docker-compose.yml describes HOW to run containers: which image, which
+# settings, which disks (volumes) and networks. `docker compose up -d` reads it.
+#
+# This stack has a single service: the finance MCP. It is NOT exposed to the
+# internet directly (no `ports:`); only Caddy, on the shared `proxy` network,
+# can reach it. See proxy/ for the Caddy stack.
+# ---------------------------------------------------------------------------
+
+services:
+  finance-mcp:
+    build: .                      # build the image from ./Dockerfile
+    image: finance-mcp:latest     # name given to the built image
+    container_name: finance-mcp   # also its hostname on the proxy network (Caddy uses it)
+    restart: unless-stopped       # come back after crashes and VPS reboots
+    env_file: .env                # load secrets/settings from .env (never committed)
+    volumes:
+      - finance-data:/data        # persistent disk: config.yaml, backups, OAuth state
+    networks:
+      - proxy
+    # Resource limits: the server uses ~120 MB; this cap protects the other services.
+    mem_limit: 256m
+    cpus: 0.5
+    # Hardening: read-only filesystem except /data and a small /tmp, no privilege escalation.
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  finance-data:                   # a named volume: survives `docker compose down` and rebuilds
+
+networks:
+  proxy:
+    external: true                # created by the proxy stack (proxy/docker-compose.yml)
