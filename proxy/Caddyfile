@@ -16,6 +16,17 @@ finance.joaokishimoto.dev {
 	}
 }
 
+# Whatsapp Automation MCP. "automation-mcp" is the container name on the proxy
+wa.joaokishimoto.dev {
+	encode zstd gzip
+	reverse_proxy automation-mcp:8000
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}
+
 # Your other MCP (example — uncomment and adjust the container name/port):
 # othermcp.joaokishimoto.dev {
 # 	reverse_proxy other-mcp:8000
