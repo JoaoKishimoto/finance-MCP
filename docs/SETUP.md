@@ -1,6 +1,6 @@
 # Setup, step by step
 
-Order: **Pluggy → brapi → GitHub OAuth app → DNS → VPS (Docker, firewall) → .env → start → connect claude.ai → first chat.**
+Order: **Pluggy → brapi → GitHub OAuth app → DNS → VPS (Docker, firewall, folders) → code via private GitHub repo → .env → start → connect claude.ai → first chat.**
 
 New to Docker? Read [DOCKER.md](DOCKER.md) first (about 10 minutes).
 
@@ -16,7 +16,7 @@ New to Docker? Read [DOCKER.md](DOCKER.md) first (about 10 minutes).
    - **Dashboard:** Applications → your app → **Demo** → **Connect Account** → choose **MeuPluggy** → log in. Then click each entry under **Connected Items** to copy its `itemId`.
    - **Script** (if you can't find the Demo page): on your computer, in the project folder:
      ```bash
-     cp .env.example .env    # then put PLUGGY_CLIENT_ID / PLUGGY_CLIENT_SECRET in it
+     cp -n .env.example .env    # -n: never overwrites an existing .env. Then fill PLUGGY_CLIENT_ID / SECRET
      python3 scripts/connect.py
      ```
      A browser tab opens. Choose **MeuPluggy**, log in, pick a bank. The Item ID is printed. Repeat once per bank.
@@ -78,7 +78,7 @@ If the script doesn't support 26.04 yet, use Ubuntu's own packages instead: `sud
 
 ### 5.2 Open ports 80 and 443. Oracle has TWO firewalls.
 
-**(a) Oracle Cloud console.** Go to **Networking → Virtual Cloud Networks →** your VCN **→** your subnet **→ Security List → Add Ingress Rules**:
+**(a) Oracle Cloud console.** Find the right network through the instance, because failed creation attempts can leave several VCNs with the same name: **Compute → Instances →** your instance **→ Primary VNIC → Subnet** (click it) **→ Security Lists → Default Security List → Add Ingress Rules**. Keep the existing TCP 22 (SSH) and ICMP rules and add:
 
 | Source CIDR | IP Protocol | Destination port |
 |---|---|---|
@@ -105,20 +105,78 @@ sudo mkdir -p /opt/proxy /opt/finance
 sudo chown $USER:$USER /opt/proxy /opt/finance
 ```
 
-## Step 6: Copy the project to the VPS
+## Step 6: Get the code onto the VPS (private GitHub repo)
 
-From **your computer**, in `~/.dev/Projetos/MCPs/Finance`:
+The code goes to a **private** GitHub repo. The VPS downloads it with a read-only **deploy key**, so it never has access to your GitHub account. `.env` is in `.gitignore`, so your secrets are never uploaded.
+
+### 6.1 First commit (your computer)
+
+Set your git identity once. For the email, use the private address from **github.com/settings/emails** ("Keep my email addresses private"):
 
 ```bash
-rsync -av --exclude .git --exclude .env --exclude 'data/' --exclude '__pycache__' ./ ubuntu@YOUR_VPS_IP:/opt/finance/
-rsync -av proxy/ ubuntu@YOUR_VPS_IP:/opt/proxy/
+git config --global user.name "Your Name"
+git config --global user.email "ID+username@users.noreply.github.com"
 ```
 
-`rsync` only sends what changed. Run the same command again later to deploy updates.
+Commit. Check that the `git status` list has **no `.env` and no `.key` file** before committing:
 
-## Step 7: Create the .env files (on the VPS)
+```bash
+cd ~/.dev/Projetos/MCPs/Finance
+git add -A
+git status --short
+git commit -m "Finance MCP: initial version"
+```
 
-### 7.1 Proxy
+### 6.2 Private repo and push (your computer)
+
+On GitHub, click **New repository**, name it `finance-mcp`, choose **Private**, and **don't** add a README or .gitignore. Then:
+
+```bash
+git remote add origin git@github.com:YOUR_USERNAME/finance-mcp.git
+git push -u origin main
+```
+
+If you have the `gh` CLI, this replaces both steps: `gh repo create finance-mcp --private --source . --push`.
+
+### 6.3 Deploy key (VPS)
+
+Create a key that can only **read** this repo:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/finance_deploy -N "" -C "vps-deploy"
+cat ~/.ssh/finance_deploy.pub
+```
+
+Copy the printed line. On GitHub, open the repo and go to **Settings → Deploy keys → Add deploy key**. Title it `oracle-vps`, paste the line, and leave **Allow write access unchecked**.
+
+Tell SSH to use that key for GitHub, then test:
+
+```bash
+printf 'Host github.com\n  IdentityFile ~/.ssh/finance_deploy\n  IdentitiesOnly yes\n' >> ~/.ssh/config
+ssh -T git@github.com
+```
+
+Answer `yes` to the fingerprint question. Expected result: "Hi YOUR_USERNAME/finance-mcp! You've successfully authenticated…".
+
+### 6.4 Clone (VPS)
+
+`/opt/finance` from 5.3 must be empty:
+
+```bash
+git clone git@github.com:YOUR_USERNAME/finance-mcp.git /opt/finance
+```
+
+### 6.5 Shared proxy (VPS, only once)
+
+Copy the proxy template out of the repo. `/opt/proxy` will also hold your other sites, so it isn't kept inside this repo:
+
+```bash
+cp -r /opt/finance/proxy/. /opt/proxy/
+```
+
+## Step 7: The .env files
+
+### 7.1 Proxy (VPS)
 
 ```bash
 cd /opt/proxy
@@ -126,15 +184,16 @@ cp .env.example .env
 nano .env            # ACME_EMAIL=your email (for Let's Encrypt notices)
 ```
 
-### 7.2 Finance MCP
+### 7.2 Finance MCP: fill it in on your computer, then send it
+
+Fill in `~/.dev/Projetos/MCPs/Finance/.env` on your computer, using the table below. Check it with `python -m finance_mcp.check` (see "Local testing" at the end). Then send it over SSH. It's never in git:
 
 ```bash
-cd /opt/finance
-cp .env.example .env
-openssl rand -hex 32         # copy the output; it will be JWT_SIGNING_KEY
-nano .env
-chmod 600 .env               # only your user can read it
+scp .env ubuntu@YOUR_VPS_IP:/opt/finance/.env
+ssh ubuntu@YOUR_VPS_IP chmod 600 /opt/finance/.env
 ```
+
+To create it directly on the VPS instead: `cd /opt/finance && cp .env.example .env && nano .env && chmod 600 .env`, and generate `JWT_SIGNING_KEY` with `openssl rand -hex 32`.
 
 Fill in each line:
 
@@ -147,7 +206,7 @@ Fill in each line:
 | `AUTH_MODE` | `github` (already filled in) |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | Step 3 |
 | `ALLOWED_GITHUB_USERS` | Your GitHub username |
-| `JWT_SIGNING_KEY` | The `openssl rand -hex 32` output |
+| `JWT_SIGNING_KEY` | Already generated in your local `.env`. Only if you create the file on the VPS: `openssl rand -hex 32` |
 
 Rules for `.env`: one `KEY=value` per line, **no quotes, no spaces around `=`**, and lines starting with `#` are comments.
 
@@ -204,9 +263,10 @@ If something is classified wrong, tell Claude (for example, "Smart Fit is essent
 
 | Task | Command (on the VPS) |
 |---|---|
-| Deploy a new version | From your computer, run the rsync from Step 6. Then `cd /opt/finance && docker compose up -d --build` |
+| Deploy a new version | On your computer: `git add -A && git commit -m "..." && git push`. Then on the VPS: `cd /opt/finance && git pull && docker compose up -d --build` |
+| Change `.env` (edited on your computer) | `scp .env ubuntu@YOUR_VPS_IP:/opt/finance/.env`, then on the VPS `cd /opt/finance && docker compose up -d` |
 | Logs | `cd /opt/finance && docker compose logs -f --tail 100` |
-| Change `.env` | `nano .env` then `docker compose up -d` |
+| Change `.env` (edited on the VPS) | `nano .env` then `docker compose up -d` |
 | See your rules | `docker compose exec finance-mcp cat /data/config.yaml` |
 | List config backups | `docker compose exec finance-mcp ls /data/backups` |
 | Roll back a config change | `docker compose exec finance-mcp cp /data/backups/config-XXXX.yaml /data/config.yaml` |

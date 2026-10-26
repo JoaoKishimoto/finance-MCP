@@ -38,7 +38,7 @@ Nothing here can move money. Pluggy's data API is read-only, and the only things
 ## Security
 
 - claude.ai logs in with **OAuth ("Sign in with GitHub")**, and only the usernames in `ALLOWED_GITHUB_USERS` are accepted.
-- Only Claude's own callback URL can receive login codes.
+- Only Claude's own callback URL and Hermes' loopback callback (`http://127.0.0.1:8765/callback`) can receive login codes.
 - Secrets live only in `.env` on the VPS, which is excluded from git and from the Docker image.
 - The container runs as a non-root user with a read-only filesystem, a memory cap, and no published ports. It's only reachable through Caddy.
 

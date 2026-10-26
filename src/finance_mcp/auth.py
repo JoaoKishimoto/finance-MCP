@@ -1,6 +1,6 @@
-"""OAuth for claude.ai: "Sign in with GitHub", restricted to an allowlist of GitHub usernames.
+"""OAuth for claude.ai and Hermes: "Sign in with GitHub", restricted to an allowlist of GitHub usernames.
 
-claude.ai talks OAuth to this server; FastMCP's OAuthProxy forwards the login to
+claude.ai and Hermes talk OAuth to this server; FastMCP's OAuthProxy forwards the login to
 GitHub. Anyone can *start* the login, but every MCP request re-checks the GitHub
 user behind the token, and only usernames in ALLOWED_GITHUB_USERS get through.
 """
@@ -63,8 +63,13 @@ def build_auth(settings: Settings) -> OAuthProxy:
         token_verifier=verifier,
         base_url=settings.public_base_url,
         issuer_url=settings.public_base_url,
-        # Only Claude's own callback may receive authorization codes.
-        allowed_client_redirect_uris=["https://claude.ai/api/mcp/auth_callback", "https://claude.com/api/mcp/auth_callback"],
+        # Only these callbacks may receive authorization codes: Claude's own, and Hermes'
+        # loopback listener (fixed by oauth.redirect_port: 8765 in Hermes' config.yaml).
+        allowed_client_redirect_uris=[
+            "https://claude.ai/api/mcp/auth_callback",
+            "https://claude.com/api/mcp/auth_callback",
+            "http://127.0.0.1:8765/callback",
+        ],
         jwt_signing_key=settings.jwt_signing_key,
         require_authorization_consent=True,
     )
