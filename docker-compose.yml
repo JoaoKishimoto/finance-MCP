@@ -15,7 +15,7 @@ services:
     restart: unless-stopped       # come back after crashes and VPS reboots
     env_file: .env                # load secrets/settings from .env (never committed)
     volumes:
-      - finance-data:/data        # persistent disk: config.yaml, backups, OAuth state
+      - finance-data:/data        # persistent disk: OAuth state
     networks:
       - proxy
     # Resource limits: the server uses ~120 MB; this cap protects the other services.

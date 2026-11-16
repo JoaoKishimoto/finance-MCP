@@ -39,14 +39,6 @@ class Settings:
     timezone: str = "America/Sao_Paulo"
 
     @property
-    def config_path(self) -> Path:
-        return self.data_dir / "config.yaml"
-
-    @property
-    def backup_dir(self) -> Path:
-        return self.data_dir / "backups"
-
-    @property
     def public_host(self) -> str:
         return self.public_base_url.split("://", 1)[-1].split("/", 1)[0].split(":", 1)[0]
 

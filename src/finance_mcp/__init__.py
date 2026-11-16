@@ -1,1 +1,1 @@
-"""Finance MCP: Pluggy (Open Finance Brasil) data + budgeting tools for Claude."""
+"""Finance MCP: raw Pluggy (Open Finance Brasil) and market data for Claude."""

@@ -55,7 +55,7 @@ Secrets are injected **at runtime** through `env_file`. They're never baked into
 
 A container's own filesystem is temporary, and ours is even `read_only: true` for safety. Anything that must survive goes in a **volume**:
 
-- **Named volume** (`finance-data:/data`): Docker manages where it's stored (under `/var/lib/docker/volumes/`). It holds `config.yaml`, its backups, and the OAuth login state. It survives `docker compose down`, rebuilds and upgrades.
+- **Named volume** (`finance-data:/data`): Docker manages where it's stored (under `/var/lib/docker/volumes/`). It holds the OAuth login state. It survives `docker compose down`, rebuilds and upgrades.
 - **Bind mount** (`./Caddyfile:/etc/caddy/Caddyfile:ro` in the proxy): mounts a specific file or folder from the VPS into the container. Use it for files **you** edit by hand.
 
 `docker compose down -v` **deletes** the named volumes. Don't add `-v` unless you really mean it.

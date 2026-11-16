@@ -1,13 +1,12 @@
 [project]
 name = "finance-mcp"
 version = "0.1.0"
-description = "Read-only MCP server that gives Claude your Pluggy (Open Finance) data plus budgeting tools."
+description = "Read-only MCP server that gives Claude your raw Pluggy (Open Finance) and market data."
 requires-python = ">=3.12"
 dependencies = [
     "fastmcp>=4.0,<5",
     "httpx>=0.28",
     "pydantic>=2.10",
-    "pyyaml>=6.0",
     "tzdata",
 ]
 

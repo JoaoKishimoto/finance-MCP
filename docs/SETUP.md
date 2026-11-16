@@ -246,16 +246,16 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST https://finance.joaokishimoto.d
 
 Try something like:
 
-> "Use my Finance connector. Read my config and ask me whatever is missing (income, payday, monthly investment target, emergency fund), then save it."
+> "Use my Finance connector. Show my balances and this month's transactions."
 
 Then:
 
-- "How much can I still spend until payday without touching my investment money?"
-- "What are my monthly essential costs? And just subscriptions?"
-- "Should I buy a R$ 2.400 phone in 10x on the card?"
+- "What did I spend on groceries in the last 3 months?"
+- "Which charges repeat every month? Let's go through them together."
+- "Show my card bills and the installments still running."
 - "Show my allocation and today's Tesouro IPCA+ rates."
 
-If something is classified wrong, tell Claude (for example, "Smart Fit is essential for me"). It updates the rules with `update_config`, and every change is backed up.
+The server returns data only. What counts as essential, a subscription or affordable is decided in the conversation; tell Claude your income, payday and investment target when it matters.
 
 ---
 
@@ -267,9 +267,6 @@ If something is classified wrong, tell Claude (for example, "Smart Fit is essent
 | Change `.env` (edited on your computer) | `scp .env ubuntu@YOUR_VPS_IP:/opt/finance/.env`, then on the VPS `cd /opt/finance && docker compose up -d` |
 | Logs | `cd /opt/finance && docker compose logs -f --tail 100` |
 | Change `.env` (edited on the VPS) | `nano .env` then `docker compose up -d` |
-| See your rules | `docker compose exec finance-mcp cat /data/config.yaml` |
-| List config backups | `docker compose exec finance-mcp ls /data/backups` |
-| Roll back a config change | `docker compose exec finance-mcp cp /data/backups/config-XXXX.yaml /data/config.yaml` |
 | Back up the volume to your computer | `docker compose cp finance-mcp:/data ./finance-data-backup`, then `scp` it |
 | RAM / CPU | `docker stats` |
 | Clean old images | `docker image prune` |
